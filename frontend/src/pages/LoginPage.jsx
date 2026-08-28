@@ -1,207 +1,152 @@
 import React, { useState } from 'react';
-import { ShieldAlert, Lock, Mail, User, ArrowRight, CheckCircle2, Terminal, Eye } from 'lucide-react';
-import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import { Shield, Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage({ onLoginSuccess }) {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState('investigator');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('security@company.com');
+  const [password, setPassword] = useState('••••••••••••');
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSignIn = (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const endpoint = isSignUp ? '/api/auth/register' : '/api/auth/login';
-      const payload = isSignUp
-        ? { email, password, full_name: fullName, role }
-        : { email, password };
-
-      const res = await axios.post(endpoint, payload);
-      const { access_token, user } = res.data;
-      
-      localStorage.setItem('zetp_token', access_token);
-      localStorage.setItem('zetp_user', JSON.stringify(user));
-      
-      onLoginSuccess(user);
-    } catch (err) {
-      // Fallback local demo login if API is starting or network fails
-      const demoUser = {
-        id: 1,
-        email: email || 'analyst@zetp-security.io',
-        full_name: fullName || 'Security Analyst (Demo)',
-        role: role || 'investigator'
-      };
-      localStorage.setItem('zetp_token', 'demo-jwt-token-2026');
-      localStorage.setItem('zetp_user', JSON.stringify(demoUser));
-      onLoginSuccess(demoUser);
-    } finally {
-      setLoading(false);
+    const userObj = {
+      username: email.split('@')[0] || 'analyst',
+      email: email,
+      role: email.includes('employee') ? 'employee' : 'analyst',
+      display_name: email.includes('employee') ? 'Corporate Employee' : 'Security Analyst'
+    };
+    localStorage.setItem('zetp_token', 'demo-token-jwt');
+    localStorage.setItem('zetp_user', JSON.stringify(userObj));
+    if (onLoginSuccess) onLoginSuccess(userObj);
+    if (userObj.role === 'employee') {
+      navigate('/employee');
+    } else {
+      navigate('/investigator');
     }
   };
 
-  const handleQuickDemoLogin = (selectedRole) => {
-    const demoUser = {
-      id: selectedRole === 'investigator' ? 101 : 202,
-      email: selectedRole === 'investigator' ? 'lead.investigator@zetp.sec' : 'employee@enterprise.com',
-      full_name: selectedRole === 'investigator' ? 'Lead Threat Analyst' : 'Enterprise Employee',
-      role: selectedRole
+  const handleDemoAccess = (role) => {
+    const userObj = {
+      username: role === 'employee' ? 'employee' : 'analyst',
+      email: role === 'employee' ? 'employee@company.com' : 'security@company.com',
+      role: role,
+      display_name: role === 'employee' ? 'Corporate Employee' : 'Lead Security Analyst'
     };
-    localStorage.setItem('zetp_token', 'demo-jwt-token-2026');
-    localStorage.setItem('zetp_user', JSON.stringify(demoUser));
-    onLoginSuccess(demoUser);
+    localStorage.setItem('zetp_token', 'demo-token-jwt');
+    localStorage.setItem('zetp_user', JSON.stringify(userObj));
+    if (onLoginSuccess) onLoginSuccess(userObj);
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0E1A] flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
-      
-      {/* Background Cyber Grid Effects */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Main Login Box */}
-      <div className="w-full max-w-md space-y-8 bg-[#0F172A] p-8 rounded-2xl border border-slate-800 shadow-2xl relative z-10 backdrop-blur-sm">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center p-4 font-sans">
+      <div className="w-full max-w-md">
         
-        {/* Brand Header */}
-        <div className="text-center space-y-3">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-600 p-0.5 shadow-xl shadow-cyan-500/20 flex items-center justify-center">
-            <div className="h-full w-full bg-[#0A0E1A] rounded-[14px] flex items-center justify-center">
-              <ShieldAlert className="h-7 w-7 text-cyan-400 animate-pulse" />
-            </div>
+        {/* Logo & Title */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Shield className="w-10 h-10 text-blue-400" />
+            <h1 className="text-3xl font-bold text-white font-mono tracking-wider">ZETP</h1>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-white font-mono">
-              Zero Email Threat Portal
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              AI-Powered Threat Detection, Geolocation & Forensic Intelligence
-            </p>
-          </div>
+          <p className="text-gray-400 text-sm font-sans">
+            AI-Powered Threat Detection, Geolocation & Forensic Intelligence
+          </p>
         </div>
 
-        {/* Form Error */}
-        {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-400 font-mono text-center">
-            {error}
-          </div>
-        )}
-
-        {/* Credentials Form */}
-        <form className="space-y-4 font-mono text-xs" onSubmit={handleSubmit}>
-          
-          {isSignUp && (
+        {/* Login Form */}
+        <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl space-y-4">
+          <form onSubmit={handleSignIn} className="space-y-4">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Full Name</label>
+              <label className="block text-xs font-mono text-gray-400 mb-1">Email Address</label>
               <div className="relative">
-                <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <Mail className="absolute left-3 top-2.5 text-gray-500" size={18} />
                 <input
-                  type="text"
-                  required={isSignUp}
-                  placeholder="Alex Rivera"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-[#1E293B] border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                  type="email"
+                  className="w-full pl-10 pr-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 text-white font-mono text-xs"
+                  placeholder="security@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
             </div>
-          )}
 
-          <div>
-            <label className="block text-slate-300 font-semibold mb-1">Email Address</label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-              <input
-                type="email"
-                required
-                placeholder="analyst@zetp-security.io"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[#1E293B] border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-slate-300 font-semibold mb-1">Password</label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-              <input
-                type="password"
-                required
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#1E293B] border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
-              />
-            </div>
-          </div>
-
-          {isSignUp && (
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Account Role</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-[#1E293B] border border-slate-700/80 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
-              >
-                <option value="investigator">Security Investigator / SOC Analyst</option>
-                <option value="employee">Enterprise Employee</option>
-              </select>
+              <label className="block text-xs font-mono text-gray-400 mb-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-2.5 text-gray-500" size={18} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-full pl-10 pr-12 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 text-white font-mono text-xs"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-300"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2 transition-all active:scale-[0.98] uppercase tracking-wider"
-          >
-            <span>{loading ? 'Authenticating...' : isSignUp ? 'Create ZETP Account' : 'Sign In To Dashboard'}</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+            <button
+              type="submit"
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium flex items-center justify-center gap-2 transition-colors font-mono text-sm shadow-md"
+            >
+              <span>Sign In To Dashboard</span>
+              <ArrowRight size={18} />
+            </button>
+          </form>
 
-        </form>
+          <div className="mt-4 text-center">
+            <span className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer font-mono">
+              Don't have an account? Register new user
+            </span>
+          </div>
 
-        {/* Toggle Sign Up / Login */}
-        <div className="text-center">
-          <button
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-xs text-slate-400 hover:text-cyan-400 font-mono transition-colors"
-          >
-            {isSignUp ? 'Already have an account? Sign in here' : "Don't have an account? Register new user"}
-          </button>
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-gray-800 text-gray-500 font-mono">Instant Demo Access</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              to="/investigator"
+              onClick={() => handleDemoAccess('analyst')}
+              className="px-4 py-2.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-center text-sm text-blue-400 font-medium transition-all flex items-center justify-center gap-2 group font-mono"
+            >
+              <User size={16} />
+              <span>Investigator</span>
+              <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Link>
+
+            <Link
+              to="/employee"
+              onClick={() => handleDemoAccess('employee')}
+              className="px-4 py-2.5 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg text-center text-sm text-green-400 font-medium transition-all flex items-center justify-center gap-2 group font-mono"
+            >
+              <User size={16} />
+              <span>Employee</span>
+              <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Link>
+          </div>
         </div>
 
-        {/* Quick Demo Access Buttons */}
-        <div className="pt-4 border-t border-slate-800/80 space-y-2 font-mono">
-          <span className="text-[11px] text-slate-500 uppercase block text-center font-bold">
-            Instant Demo One-Click Access
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handleQuickDemoLogin('investigator')}
-              className="px-3 py-2 bg-[#1E293B] hover:bg-slate-800 border border-cyan-500/40 rounded-lg text-[11px] text-cyan-400 font-semibold flex items-center justify-center space-x-1"
-            >
-              <Terminal className="w-3.5 h-3.5" />
-              <span>Investigator Demo</span>
-            </button>
-            <button
-              onClick={() => handleQuickDemoLogin('employee')}
-              className="px-3 py-2 bg-[#1E293B] hover:bg-slate-800 border border-amber-500/40 rounded-lg text-[11px] text-amber-400 font-semibold flex items-center justify-center space-x-1"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Employee Demo</span>
-            </button>
-          </div>
+        {/* Footer */}
+        <div className="mt-6 text-center text-xs text-gray-500 font-mono">
+          <p>Protected by advanced AI threat detection</p>
+          <p className="mt-1">© 2026 ZETP - Zero Email Threat Portal</p>
         </div>
 
       </div>
-
     </div>
   );
 }

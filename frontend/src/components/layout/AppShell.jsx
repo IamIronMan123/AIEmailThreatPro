@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Shield, LayoutDashboard, Mail, Cpu, Globe, Database, FileSearch,
   Search, Bell, Settings, User, Eye, Terminal, ChevronLeft, ChevronRight,
-  Activity, ShieldCheck, FileText, Layers, Lock, LogOut, Mic, Sparkles
+  Activity, ShieldCheck, FileText, Layers, Lock, LogOut, Mic, Sparkles, Users
 } from 'lucide-react';
 import WebThreads from '../WebThreads';
 import VoiceChatModal from '../voice/VoiceChatModal';
@@ -17,7 +17,8 @@ export default function AppShell({ activeModule, setActiveModule, viewMode, setV
     { id: 'threat-detection', label: 'Threat Detection', icon: Cpu },
     { id: 'geolocation', label: 'Geolocation Intelligence', icon: Globe },
     { id: 'digital-forensics', label: 'Digital Forensics', icon: Database },
-    { id: 'investigations', label: 'Investigations', icon: FileSearch }
+    { id: 'investigations', label: 'Investigation Cases', icon: FileSearch },
+    { id: 'users', label: 'Users & Mailboxes', icon: Users }
   ];
 
   const sidebarWorkspace = [
@@ -26,7 +27,8 @@ export default function AppShell({ activeModule, setActiveModule, viewMode, setV
     { id: 'threat-detection', label: 'Threat Detection', icon: Cpu },
     { id: 'geolocation', label: 'Geolocation Intel', icon: Globe },
     { id: 'digital-forensics', label: 'Digital Forensics', icon: Database },
-    { id: 'investigations', label: 'Investigation Cases', icon: FileSearch }
+    { id: 'investigations', label: 'Investigation Cases', icon: FileSearch },
+    { id: 'users', label: 'Users & Mailboxes', icon: Users }
   ];
 
   const sidebarIntelligence = [
@@ -263,7 +265,13 @@ export default function AppShell({ activeModule, setActiveModule, viewMode, setV
                   return (
                     <button
                       key={item.id}
-                      onClick={() => setActiveModule('overview')}
+                      onClick={() => {
+                        if (item.id === 'reports') {
+                          setActiveModule('digital-forensics');
+                        } else {
+                          setActiveModule('overview');
+                        }
+                      }}
                       title={sidebarCollapsed ? item.label : undefined}
                       className="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 transition-colors"
                     >

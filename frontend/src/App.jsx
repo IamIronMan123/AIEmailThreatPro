@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import AppShell from './components/layout/AppShell';
 import LoginPage from './pages/LoginPage';
+import InvestigatorDashboard from './pages/InvestigatorDashboard';
+import EmployeeDashboard from './pages/EmployeeDashboard';
 import OverviewModule from './pages/OverviewModule';
 import EmailAnalysisModule from './pages/EmailAnalysisModule';
 import ThreatDetectionModule from './pages/ThreatDetectionModule';
 import GeolocationModule from './pages/GeolocationModule';
 import DigitalForensicsModule from './pages/DigitalForensicsModule';
+import InvestigationsListModule from './pages/InvestigationsListModule';
+import UserManagementModule from './pages/UserManagementModule';
 import EmployeeView from './pages/EmployeeView';
+import SOCDashboard from './pages/SOCDashboard';
 import CaseDetailsModal from './components/cases/CaseDetailsModal';
 import ReportGenerationModal from './components/reports/ReportGenerationModal';
 
@@ -32,8 +38,13 @@ If you do not take action within 24 hours, your access will be permanently revok
 Attachment: Account_Verification_Form.exe
 `;
 
-export default function App() {
-  const [user, setUser] = useState(null);
+function InvestigatorAppWrapper() {
+  const [user, setUser] = useState({
+    username: 'analyst',
+    email: 'security@company.com',
+    role: 'analyst',
+    display_name: 'Lead Security Analyst'
+  });
   const [activeModule, setActiveModule] = useState('overview');
   const [viewMode, setViewMode] = useState('analyst');
   const [scanResult, setScanResult] = useState(null);
@@ -41,18 +52,9 @@ export default function App() {
   const [selectedCase, setSelectedCase] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
-    const savedUser = localStorage.getItem('zetp_user');
-    if (savedUser) {
-      try {
-        const u = JSON.parse(savedUser);
-        setUser(u);
-        if (u.role === 'employee') setViewMode('employee');
-      } catch (e) {
-        localStorage.removeItem('zetp_user');
-      }
-    }
-    // Perform initial scan
     handleRunScan(SAMPLE_PHISHING);
   }, []);
 
@@ -62,7 +64,6 @@ export default function App() {
       const res = await axios.post('/api/scan', { raw_email: emailText });
       setScanResult(res.data);
     } catch (err) {
-      // Fallback demo data
       setScanResult({
         scan_id: 1042,
         case_id: 'CASE-2026-00421',
@@ -84,10 +85,22 @@ export default function App() {
         ai_threat_detection: {
           threat_score: 94.5,
           threat_severity: 'Critical',
+          policy_action: 'QUARANTINE',
+          action_label: 'Quarantined & Blocked',
+          action_badge_color: 'red',
+          action_description: 'High-risk or fake email detected! Automatically quarantined and blocked from reaching user inbox.',
+          action_status: 'QUARANTINED_BLOCKED',
           phishing_probability: 94.5,
           spam_probability: 4.5,
           malware_probability: 88.0,
           legitimate_probability: 1.0,
+          detection_characteristics: {
+            fake_sender_info: { detected: true, label: "Fake Sender Information", details: "SPF/DKIM/DMARC domain alignment checks failed. Sender identity spoofed." },
+            phishing_links: { detected: true, label: "Phishing Links", details: "Found 1 embedded link(s) matching credential harvesting patterns." },
+            suspicious_messages: { detected: true, label: "Suspicious Words / Coercive Messages", details: "High-urgency social engineering triggers detected." },
+            malicious_attachments: { detected: true, label: "Malicious Attachments", details: "Executable binary payload (.exe) detected." },
+            unusual_patterns: { detected: true, label: "Unusual Email Patterns", details: "Reply-To address mismatch and anomalous relay routing observed." }
+          },
           classifications: [
             { category: 'Phishing', probability: 94.5, confidence: 'High', risk_level: 'Critical', description: 'Credential harvesting lure targeting corporate accounts.' },
             { category: 'Malware', probability: 88.0, confidence: 'High', risk_level: 'High', description: 'Malicious payload attachment or execution script.' },
@@ -136,64 +149,66 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('zetp_token');
     localStorage.removeItem('zetp_user');
-    setUser(null);
+    navigate('/');
   };
-
-  if (!user) {
-    return <LoginPage onLoginSuccess={(u) => { setUser(u); if (u.role === 'employee') setViewMode('employee'); }} />;
-  }
 
   return (
     <AppShell
       activeModule={activeModule}
       setActiveModule={setActiveModule}
       viewMode={viewMode}
-      setViewMode={setViewMode}
+      setViewMode={(mode) => {
+        setViewMode(mode);
+        if (mode === 'employee') navigate('/employee');
+        else navigate('/investigator');
+      }}
       user={user}
       onLogout={handleLogout}
       scanResult={scanResult}
     >
-      {viewMode === 'employee' ? (
-        <EmployeeView scanResult={scanResult} />
-      ) : (
-        <>
-          {activeModule === 'overview' && (
-            <OverviewModule
-              onOpenCase={(c) => setSelectedCase(c)}
-              onNavigateModule={(m) => setActiveModule(m)}
-            />
-          )}
+      {activeModule === 'overview' && (
+        <InvestigatorDashboard
+          onNavigateModule={(m) => setActiveModule(m)}
+          scanResult={scanResult}
+        />
+      )}
 
-          {activeModule === 'email-analysis' && (
-            <EmailAnalysisModule
-              scanResult={scanResult}
-              onRunScan={handleRunScan}
-              scanning={scanning}
-            />
-          )}
+      {activeModule === 'email-analysis' && (
+        <EmailAnalysisModule
+          scanResult={scanResult}
+          onRunScan={handleRunScan}
+          scanning={scanning}
+        />
+      )}
 
-          {activeModule === 'threat-detection' && (
-            <ThreatDetectionModule scanResult={scanResult} />
-          )}
+      {activeModule === 'threat-detection' && (
+        <ThreatDetectionModule scanResult={scanResult} />
+      )}
 
-          {activeModule === 'geolocation' && (
-            <GeolocationModule scanResult={scanResult} />
-          )}
+      {activeModule === 'geolocation' && (
+        <GeolocationModule scanResult={scanResult} />
+      )}
 
-          {activeModule === 'digital-forensics' && (
-            <DigitalForensicsModule
-              scanResult={scanResult}
-              onGenerateReport={() => setShowReportModal(true)}
-            />
-          )}
+      {activeModule === 'digital-forensics' && (
+        <DigitalForensicsModule
+          scanResult={scanResult}
+          onGenerateReport={() => setShowReportModal(true)}
+        />
+      )}
 
-          {activeModule === 'investigations' && (
-            <OverviewModule
-              onOpenCase={(c) => setSelectedCase(c)}
-              onNavigateModule={(m) => setActiveModule(m)}
-            />
-          )}
-        </>
+      {activeModule === 'investigations' && (
+        <InvestigationsListModule
+          onOpenCase={(c) => setSelectedCase(c)}
+          onGenerateReport={() => setShowReportModal(true)}
+        />
+      )}
+
+      {activeModule === 'users' && (
+        <UserManagementModule
+          onOpenEmployeeThreats={() => {
+            setActiveModule('investigations');
+          }}
+        />
       )}
 
       {/* Case Details Modal */}
@@ -213,5 +228,18 @@ export default function App() {
         />
       )}
     </AppShell>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/investigator" element={<InvestigatorAppWrapper />} />
+        <Route path="/employee" element={<EmployeeDashboard />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
